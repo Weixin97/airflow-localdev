@@ -1,0 +1,6 @@
+# With this (pre-compiled version):
+requests==2.31.0
+psycopg2-binary==2.9.9
+sqlalchemy>=1.4.0,<2.0.0
+dbt-core==1.6.0
+dbt-postgres==1.6.0

@@ -1,0 +1,65 @@
+version: 2
+
+sources:
+  - name: bronze
+    description: Raw SpaceX API data stored as JSON
+    schema: bronze
+    tables:
+      - name: launches
+        description: Raw launch data from SpaceX API
+        columns:
+          - name: id
+            description: Unique launch identifier
+            tests:
+              - unique
+              - not_null
+          - name: data
+            description: Raw JSON data from SpaceX API
+            tests:
+              - not_null
+          - name: extracted_at
+            description: Timestamp when data was extracted from API
+          - name: source_system
+            description: Source system identifier
+
+      - name: starlink
+        description: Raw Starlink satellite data from SpaceX API
+        columns:
+          - name: id
+            description: Unique satellite identifier
+            tests:
+              - unique
+              - not_null
+          - name: data
+            description: Raw JSON satellite data from SpaceX API
+            tests:
+              - not_null
+          - name: extracted_at
+            description: Timestamp when data was extracted from API
+
+      - name: rockets
+        description: Raw rocket specification data from SpaceX API
+        columns:
+          - name: id
+            description: Unique rocket identifier
+            tests:
+              - unique
+              - not_null
+          - name: data
+            description: Raw JSON rocket data from SpaceX API
+
+      - name: pipeline_runs
+        description: Pipeline execution metadata and logging
+        columns:
+          - name: id
+            description: Unique run identifier
+          - name: dag_id
+            description: Airflow DAG identifier
+          - name: task_id
+            description: Airflow task identifier
+          - name: status
+            description: Pipeline run status (success/failed)
+          - name: records_processed
+            description: Number of records processed in the run
+          - name: run_date
+            description: When the pipeline run occurred

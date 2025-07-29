@@ -1,0 +1,14 @@
+spacex_analytics:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: "{{ env_var('SPACEX_DB_HOST', 'spacex-postgres') }}"
+      user: "{{ env_var('SPACEX_DB_USER', 'spacex_user') }}"
+      password: "{{ env_var('SPACEX_DB_PASSWORD', 'spacex_password') }}"
+      port: "{{ env_var('SPACEX_DB_PORT', 5432) | as_number }}"
+      dbname: "{{ env_var('SPACEX_DB_NAME', 'spacex_db') }}"
+      schema: gold
+      threads: 4
+      keepalives_idle: 0
+      search_path: "gold,silver,bronze,public"

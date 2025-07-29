@@ -1,0 +1,37 @@
+name: 'spacex_analytics'
+version: '1.0.0'
+config-version: 2
+profile: 'spacex_analytics'
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+# Model configurations
+models:
+  spacex_analytics:
+    # Silver layer - cleaned and parsed data
+    silver:
+      +materialized: view
+      +schema: silver
+    # Gold layer - business analytics
+    gold:
+      +materialized: table
+      +schema: gold
+
+# Tests configuration
+tests:
+  spacex_analytics:
+    +severity: warn
+
+# Documentation
+docs:
+  spacex_analytics:
+    +enabled: true

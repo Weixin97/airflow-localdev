@@ -1,0 +1,38 @@
+# docker-compose.override.yml
+version: "3.1"
+
+services:
+  spacex-postgres:
+    image: postgres:13
+    container_name: spacex_postgres
+    environment:
+      POSTGRES_USER: spacex_user
+      POSTGRES_PASSWORD: spacex_password
+      POSTGRES_DB: spacex_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - spacex_postgres_data:/var/lib/postgresql/data
+      - ./sql/init-database.sql:/docker-entrypoint-initdb.d/init-database.sql
+    restart: unless-stopped
+
+  webserver:
+    environment:
+      SPACEX_DB_HOST: spacex_postgres
+      SPACEX_DB_USER: spacex_user
+      SPACEX_DB_PASSWORD: spacex_password
+      SPACEX_DB_NAME: spacex_db
+    depends_on:
+      - spacex-postgres
+
+  scheduler:
+    environment:
+      SPACEX_DB_HOST: spacex_postgres
+      SPACEX_DB_USER: spacex_user
+      SPACEX_DB_PASSWORD: spacex_password
+      SPACEX_DB_NAME: spacex_db
+    depends_on:
+      - spacex-postgres
+
+volumes:
+  spacex_postgres_data:
