@@ -40,10 +40,11 @@ class SpaceXExtractor:
             conn = self.get_connection()
             cursor = conn.cursor()
             
+            # Fixed to match the actual table schema
             cursor.execute("""
-                INSERT INTO bronze.pipeline_runs (dag_id, task_id, status, records_processed, error_message)
-                VALUES (%s, %s, %s, %s, %s)
-            """, (dag_id, task_id, status, records, error))
+                INSERT INTO bronze.pipeline_metadata (pipeline_name, status, records_processed, error_message)
+                VALUES (%s, %s, %s, %s)
+            """, (f"{dag_id}.{task_id}", status, records, error))
             
             conn.commit()
             cursor.close()

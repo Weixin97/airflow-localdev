@@ -48,18 +48,20 @@ sources:
           - name: data
             description: Raw JSON rocket data from SpaceX API
 
-      - name: pipeline_runs
+      - name: pipeline_metadata
         description: Pipeline execution metadata and logging
         columns:
           - name: id
             description: Unique run identifier
-          - name: dag_id
-            description: Airflow DAG identifier
-          - name: task_id
-            description: Airflow task identifier
+          - name: pipeline_name
+            description: Pipeline identifier (dag_id.task_id format)
+          - name: run_date
+            description: When the pipeline run occurred
           - name: status
             description: Pipeline run status (success/failed)
           - name: records_processed
             description: Number of records processed in the run
-          - name: run_date
-            description: When the pipeline run occurred
+          - name: error_message
+            description: Error message if pipeline failed
+          - name: created_at
+            description: When the record was created

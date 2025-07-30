@@ -25,13 +25,3 @@ models:
     gold:
       +materialized: table
       +schema: gold
-
-# Tests configuration
-tests:
-  spacex_analytics:
-    +severity: warn
-
-# Documentation
-docs:
-  spacex_analytics:
-    +enabled: true

@@ -42,7 +42,11 @@ deployment_efficiency AS (
         COUNT(CASE WHEN launch_date >= CURRENT_DATE - INTERVAL '12 months' THEN 1 END) as recent_total_launches,
         
         -- Calculate actual deployment rate (using Starlink satellite counts)
-        (SELECT current_active_satellites FROM current_status) / NULLIF(COUNT(CASE WHEN launch_success THEN 1 END), 0) as actual_satellites_per_successful_launch
+        CASE 
+            WHEN COUNT(CASE WHEN launch_success THEN 1 END) > 0 THEN
+                (SELECT current_active_satellites FROM current_status) / COUNT(CASE WHEN launch_success THEN 1 END)
+            ELSE NULL
+        END as actual_satellites_per_successful_launch
 
     FROM {{ ref('silver_launches') }}
     WHERE is_starlink_mission = true
@@ -67,31 +71,31 @@ projection_scenarios AS (
         42000 - s.current_active_satellites as satellites_still_needed,
         
         -- Scenario 1: Conservative (based on historical average)
-        CEILING(
-            (42000 - s.current_active_satellites) / 
-            GREATEST(e.actual_satellites_per_successful_launch, e.avg_estimated_per_launch)
-        ) as conservative_launches_needed,
+        CASE 
+            WHEN GREATEST(COALESCE(e.actual_satellites_per_successful_launch, 0), COALESCE(e.avg_estimated_per_launch, 0)) > 0 THEN
+                CEILING((42000 - s.current_active_satellites) / GREATEST(e.actual_satellites_per_successful_launch, e.avg_estimated_per_launch))
+            ELSE NULL
+        END as conservative_launches_needed,
         
         -- Scenario 2: Current pace (based on recent 6 months)
-        CEILING(
-            (42000 - s.current_active_satellites) / 
-            GREATEST(e.actual_satellites_per_successful_launch, 50)  -- Minimum 50 per launch
-        ) as current_pace_launches_needed,
+        CASE 
+            WHEN GREATEST(COALESCE(e.actual_satellites_per_successful_launch, 0), 50) > 0 THEN
+                CEILING((42000 - s.current_active_satellites) / GREATEST(e.actual_satellites_per_successful_launch, 50))
+            ELSE NULL
+        END as current_pace_launches_needed,
         
         -- Scenario 3: Optimistic (assuming improved efficiency)
-        CEILING(
-            (42000 - s.current_active_satellites) / 70.0  -- Optimistic 70 satellites per launch
-        ) as optimistic_launches_needed,
+        CEILING((42000 - s.current_active_satellites) / 70.0) as optimistic_launches_needed,
         
         -- Timeline calculations
         CASE 
-            WHEN f.avg_launches_per_month > 0 THEN
+            WHEN f.avg_launches_per_month > 0 AND GREATEST(e.actual_satellites_per_successful_launch, e.avg_estimated_per_launch) > 0 THEN
                 CEILING((42000 - s.current_active_satellites) / GREATEST(e.actual_satellites_per_successful_launch, e.avg_estimated_per_launch)) / f.avg_launches_per_month
             ELSE NULL
         END as conservative_months_needed,
         
         CASE 
-            WHEN f.recent_6mo_monthly_rate > 0 THEN
+            WHEN f.recent_6mo_monthly_rate > 0 AND GREATEST(e.actual_satellites_per_successful_launch, 50) > 0 THEN
                 CEILING((42000 - s.current_active_satellites) / GREATEST(e.actual_satellites_per_successful_launch, 50)) / f.recent_6mo_monthly_rate
             ELSE NULL
         END as current_pace_months_needed,
@@ -116,24 +120,24 @@ SELECT
     target_satellite_count as "TARGET: Satellites Goal",
     current_active_satellites as "CURRENT: Active Satellites",
     satellites_still_needed as "REMAINING: Satellites Needed",
-    ROUND((current_active_satellites * 100.0 / target_satellite_count), 1) as "PROGRESS: Percent Complete",
+    ROUND((current_active_satellites * 100.0 / target_satellite_count)::numeric, 1) as "PROGRESS: Percent Complete",
     
     -- Historical context
     total_starlink_launches as "HISTORY: Total Starlink Launches",
     successful_starlink_launches as "HISTORY: Successful Launches",
     launch_success_rate_pct as "HISTORY: Success Rate %",
-    ROUND(avg_satellites_per_successful_launch, 1) as "HISTORY: Avg Satellites per Launch",
+    ROUND(avg_satellites_per_successful_launch::numeric, 1) as "HISTORY: Avg Satellites per Launch",
     
     -- Recent performance indicators
     launches_last_24_months as "RECENT: Launches (24 months)",
-    ROUND(avg_launches_per_month, 2) as "RECENT: Launches per Month",
-    ROUND(avg_launches_per_year, 1) as "RECENT: Launches per Year",
-    ROUND(recent_6mo_monthly_rate, 2) as "RECENT: Launches per Month (6mo trend)",
+    ROUND(avg_launches_per_month::numeric, 2) as "RECENT: Launches per Month",
+    ROUND(avg_launches_per_year::numeric, 1) as "RECENT: Launches per Year",
+    ROUND(recent_6mo_monthly_rate::numeric, 2) as "RECENT: Launches per Month (6mo trend)",
     launch_frequency_trend as "TREND: Launch Frequency",
     
     -- 🎯 BUSINESS ANSWERS - Multiple Scenarios
     conservative_launches_needed as "🎯 CONSERVATIVE: Launches Needed",
-    ROUND(conservative_months_needed, 1) as "🎯 CONSERVATIVE: Months to 42K",
+    ROUND(conservative_months_needed::numeric, 1) as "🎯 CONSERVATIVE: Months to 42K",
     CASE 
         WHEN conservative_months_needed IS NOT NULL THEN
             (CURRENT_DATE + INTERVAL '1 month' * conservative_months_needed)::date
@@ -141,7 +145,7 @@ SELECT
     END as "🎯 CONSERVATIVE: Est. Completion Date",
     
     current_pace_launches_needed as "🎯 CURRENT PACE: Launches Needed",
-    ROUND(current_pace_months_needed, 1) as "🎯 CURRENT PACE: Months to 42K",
+    ROUND(current_pace_months_needed::numeric, 1) as "🎯 CURRENT PACE: Months to 42K",
     CASE 
         WHEN current_pace_months_needed IS NOT NULL THEN
             (CURRENT_DATE + INTERVAL '1 month' * current_pace_months_needed)::date
@@ -149,7 +153,11 @@ SELECT
     END as "🎯 CURRENT PACE: Est. Completion Date",
     
     optimistic_launches_needed as "🎯 OPTIMISTIC: Launches Needed",
-    ROUND(optimistic_launches_needed / GREATEST(recent_6mo_monthly_rate, avg_launches_per_month), 1) as "🎯 OPTIMISTIC: Months to 42K",
+    CASE 
+        WHEN GREATEST(COALESCE(recent_6mo_monthly_rate, 0), COALESCE(avg_launches_per_month, 0)) > 0 AND optimistic_launches_needed > 0 THEN
+            ROUND((optimistic_launches_needed / GREATEST(recent_6mo_monthly_rate, avg_launches_per_month))::numeric, 1)
+        ELSE NULL
+    END as "🎯 OPTIMISTIC: Months to 42K",
     
     -- Confidence and risk assessment
     CASE 
@@ -169,8 +177,12 @@ SELECT
     END as "RISK: Primary Risk Factor",
     
     -- Performance metrics for analysts
-    ROUND(actual_satellites_per_successful_launch, 1) as "METRIC: Actual Sats per Success Launch",
-    ROUND(recent_total_launches::numeric / NULLIF(recent_successful_launches, 0), 2) as "METRIC: Recent Success Rate",
+    ROUND(COALESCE(actual_satellites_per_successful_launch, 0)::numeric, 1) as "METRIC: Actual Sats per Success Launch",
+    CASE 
+        WHEN recent_successful_launches > 0 THEN
+            ROUND((recent_total_launches::numeric / recent_successful_launches)::numeric, 2)
+        ELSE NULL
+    END as "METRIC: Recent Success Rate",
     hours_since_last_update as "METRIC: Data Age (hours)",
     
     -- Key assumptions for transparency

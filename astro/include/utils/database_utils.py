@@ -79,14 +79,15 @@ def get_pipeline_status() -> Dict:
         conn = get_db_connection()
         cursor = conn.cursor()
         
+        # Fixed to match the actual table schema
         cursor.execute("""
             SELECT 
-                task_id,
+                pipeline_name,
                 status,
                 records_processed,
                 run_date,
                 error_message
-            FROM bronze.pipeline_runs 
+            FROM bronze.pipeline_metadata 
             WHERE run_date >= NOW() - INTERVAL '24 hours'
             ORDER BY run_date DESC
             LIMIT 10
@@ -95,7 +96,7 @@ def get_pipeline_status() -> Dict:
         runs = []
         for row in cursor.fetchall():
             runs.append({
-                'task_id': row[0],
+                'pipeline_name': row[0],  # Changed from task_id
                 'status': row[1],
                 'records_processed': row[2],
                 'run_date': row[3],

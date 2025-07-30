@@ -69,7 +69,7 @@ launch_performance AS (
 data_freshness AS (
     SELECT 
         MAX(extracted_at) as last_data_update,
-        EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - MAX(extracted_at))) / 3600 as hours_since_last_update
+        ROUND((EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - MAX(extracted_at))) / 3600)::numeric, 2) as hours_since_last_update
     FROM {{ ref('silver_starlink') }}
 )
 
@@ -108,7 +108,7 @@ SELECT
     
     -- Data freshness indicators
     f.last_data_update,
-    ROUND(f.hours_since_last_update, 1) as hours_since_last_update,
+    ROUND(f.hours_since_last_update::numeric, 1) as hours_since_last_update,
     
     -- Health indicators
     CASE 
