@@ -19,7 +19,7 @@
 
 ```bash
 # 1. Clone the repository
-git clone [your-repo-url]
+git clone [airflow-localdev](https://github.com/Weixin97/airflow-localdev.git)
 cd astro
 
 # 2. Start the Airflow environment
