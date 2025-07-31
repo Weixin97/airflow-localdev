@@ -115,54 +115,54 @@ def run_data_quality_checks(**context):
     
     return f"Data quality checks passed: {quality_results}"
 
-def get_extraction_summary(**context):
-    """Get summary of extraction results"""
-    extractor = SpaceXExtractor()
-    summary = extractor.get_extraction_summary()
+# def get_extraction_summary(**context):
+#     """Get summary of extraction results"""
+#     extractor = SpaceXExtractor()
+#     summary = extractor.get_extraction_summary()
     
-    # Pull counts from XCom
-    ti = context['task_instance']
-    launches_count = ti.xcom_pull(task_ids='extract_launches', key='launches_count')
-    starlink_count = ti.xcom_pull(task_ids='extract_starlink', key='starlink_count')
-    rockets_count = ti.xcom_pull(task_ids='extract_rockets', key='rockets_count')
+#     # Pull counts from XCom
+#     ti = context['task_instance']
+#     launches_count = ti.xcom_pull(task_ids='extract_launches', key='launches_count')
+#     starlink_count = ti.xcom_pull(task_ids='extract_starlink', key='starlink_count')
+#     rockets_count = ti.xcom_pull(task_ids='extract_rockets', key='rockets_count')
     
-    summary.update({
-        'current_run_launches': launches_count,
-        'current_run_starlink': starlink_count,
-        'current_run_rockets': rockets_count
-    })
+#     summary.update({
+#         'current_run_launches': launches_count,
+#         'current_run_starlink': starlink_count,
+#         'current_run_rockets': rockets_count
+#     })
     
-    context['task_instance'].xcom_push(key='extraction_summary', value=summary)
-    return f"Extraction summary: {summary}"
+#     context['task_instance'].xcom_push(key='extraction_summary', value=summary)
+#     return f"Extraction summary: {summary}"
 
-def notify_completion(**context):
-    """Send completion notification with results"""
-    ti = context['task_instance']
+# def notify_completion(**context):
+#     """Send completion notification with results"""
+#     ti = context['task_instance']
     
-    # Get results from XCom
-    extraction_summary = ti.xcom_pull(task_ids='extraction_summary', key='extraction_summary')
-    quality_checks = ti.xcom_pull(task_ids='data_quality_checks', key='quality_checks')
+#     # Get results from XCom
+#     extraction_summary = ti.xcom_pull(task_ids='extraction_summary', key='extraction_summary')
+#     quality_checks = ti.xcom_pull(task_ids='data_quality_checks', key='quality_checks')
     
-    # Log completion message
-    message = f"""
-    SpaceX ETL Pipeline Completed Successfully!
+#     # Log completion message
+#     message = f"""
+#     SpaceX ETL Pipeline Completed Successfully!
     
-    Extraction Summary:
-    - Launches: {extraction_summary.get('current_run_launches', 'Unknown')}
-    - Starlink Satellites: {extraction_summary.get('current_run_starlink', 'Unknown')}
-    - Rockets: {extraction_summary.get('current_run_rockets', 'Unknown')}
+#     Extraction Summary:
+#     - Launches: {extraction_summary.get('current_run_launches', 'Unknown')}
+#     - Starlink Satellites: {extraction_summary.get('current_run_starlink', 'Unknown')}
+#     - Rockets: {extraction_summary.get('current_run_rockets', 'Unknown')}
     
-    Data Quality:
-    - Active Satellites: {quality_checks.get('starlink_active', 'Unknown')}
-    - Total Satellites: {quality_checks.get('starlink_total', 'Unknown')}
+#     Data Quality:
+#     - Active Satellites: {quality_checks.get('starlink_active', 'Unknown')}
+#     - Total Satellites: {quality_checks.get('starlink_total', 'Unknown')}
     
-    Next Steps:
-    - Check Gold layer tables for business insights
-    - Review starlink_42k_projection for satellite timeline
-    """
+#     Next Steps:
+#     - Check Gold layer tables for business insights
+#     - Review starlink_42k_projection for satellite timeline
+#     """
     
-    print(message)
-    return message
+#     print(message)
+#     return message
 
 # ============================================================================
 # TASK INSTANCES
@@ -206,12 +206,12 @@ data_quality_checks = PythonOperator(
     dag=dag
 )
 
-extraction_summary = PythonOperator(
-    task_id='extraction_summary',
-    python_callable=get_extraction_summary,
-    doc_md="Generate summary of extraction results",
-    dag=dag
-)
+# extraction_summary = PythonOperator(
+#     task_id='extraction_summary',
+#     python_callable=get_extraction_summary,
+#     doc_md="Generate summary of extraction results",
+#     dag=dag
+# )
 
 # 4. Silver Layer - dbt Transformations (Cleaning & Parsing)
 silver_transformations = BashOperator(
@@ -275,12 +275,12 @@ final_validation = BashOperator(
     dag=dag
 )
 
-completion_notification = PythonOperator(
-    task_id='completion_notification',
-    python_callable=notify_completion,
-    doc_md="Send completion notification with pipeline results",
-    dag=dag
-)
+# completion_notification = PythonOperator(
+#     task_id='completion_notification',
+#     python_callable=notify_completion,
+#     doc_md="Send completion notification with pipeline results",
+#     dag=dag
+# )
 
 # ============================================================================
 # TASK DEPENDENCIES - Medallion Architecture Flow
@@ -291,10 +291,12 @@ test_db_connection >> [extract_launches, extract_starlink, extract_rockets]
 
 # 2. Bronze Layer (Parallel extraction)
 [extract_launches, extract_starlink, extract_rockets] >> data_quality_checks
-data_quality_checks >> extraction_summary
 
 # 3. Silver Layer (depends on bronze completion)
-extraction_summary >> silver_transformations
+data_quality_checks >> silver_transformations
+
+# # 3. Silver Layer (depends on bronze completion)
+# extraction_summary >> silver_transformations
 
 # 4. Gold Layer (depends on silver completion)
 silver_transformations >> gold_analytics
@@ -303,4 +305,4 @@ silver_transformations >> gold_analytics
 gold_analytics >> [dbt_tests, generate_docs]
 
 # 6. Final steps (depends on tests and docs)
-[dbt_tests, generate_docs] >> final_validation >> completion_notification
+[dbt_tests, generate_docs] >> final_validation # >> completion_notification

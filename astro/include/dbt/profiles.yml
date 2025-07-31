@@ -8,7 +8,7 @@ spacex_analytics:
       password: "{{ env_var('SPACEX_DB_PASSWORD', 'spacex_password') }}"
       port: "{{ env_var('SPACEX_DB_PORT', 5432) | as_number }}"
       dbname: "{{ env_var('SPACEX_DB_NAME', 'spacex_db') }}"
-      schema: gold
+      schema: public
       threads: 4
       keepalives_idle: 0
       search_path: "gold,silver,bronze,public"

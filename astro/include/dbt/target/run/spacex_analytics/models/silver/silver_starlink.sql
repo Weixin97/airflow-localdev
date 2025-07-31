@@ -1,5 +1,5 @@
 
-  create view "spacex_db"."gold_silver"."silver_starlink__dbt_tmp"
+  create view "spacex_db"."silver"."silver_starlink__dbt_tmp"
     
     
   as (

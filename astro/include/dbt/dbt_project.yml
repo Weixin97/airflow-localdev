@@ -20,8 +20,15 @@ models:
     # Silver layer - cleaned and parsed data
     silver:
       +materialized: view
-      +schema: silver
+      +schema: silver  # This creates views in the 'silver' schema
+      # +pre-hook: "CREATE SCHEMA IF NOT EXISTS silver"
     # Gold layer - business analytics
     gold:
       +materialized: table
-      +schema: gold
+      +schema: gold    # This creates tables in the 'gold' schema
+      # +pre-hook: "CREATE SCHEMA IF NOT EXISTS gold"
+
+
+tests:
+  spacex_analytics:
+    +severity: warn
